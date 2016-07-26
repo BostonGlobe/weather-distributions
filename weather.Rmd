@@ -1,0 +1,145 @@
+---
+title: "Boston weather distributions"
+author: "Gabriel Florit"
+output:
+  html_document:
+    self_contained: false
+---
+
+
+```{r, message=F, warning=F, echo=F}
+
+# set working directory
+setwd("~/Documents/dev/weather-distributions")
+
+# load libraries
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(weathermetrics)
+
+```
+
+```{r}
+
+# read in data, parse date from string to date, add year column, convert max temp to fahrenheit
+data <- read.csv('data/output/data.csv', stringsAsFactors = F) %>%
+	mutate(date_ = ymd_hms(date_)) %>%
+	mutate(year = year(date_)) %>%
+	mutate(month = month(date_)) %>%
+	mutate(tmax = celsius.to.fahrenheit(tmax))
+
+```
+
+***
+#### What's the distribution of yearly measurement count?
+
+```{r}
+
+data %>%
+	group_by(year) %>%
+	summarise(count = n()) %>%
+	ggplot(aes(count)) +
+	geom_histogram(binwidth=1)
+
+```
+
+***
+#### Looks like there are some years with less than 365 measurements. Which ones?
+
+```{r}
+
+data %>%
+	group_by(year) %>%
+	summarise(count = n()) %>%
+	filter(count < 365)
+
+```
+
+How interesting - the 3 most recent years are missing data. Maybe Enigma hasn't updated their data? Either way we will only focus on complete years.
+
+***
+#### What's the overall distribution of max temperatures?
+
+```{r}
+
+complete <- data %>%
+	filter(year < 2014)
+
+complete %>%
+	ggplot(aes(tmax)) +
+	geom_histogram(binwidth=1) +
+	labs(
+		title='Distribution of Boston max temperatures',
+		subtitle='1936-2013'
+	)
+
+```
+
+Nice bell shape - looks mostly normal, slightly right-skewed.
+
+***
+#### What's the yearly median?
+
+```{r, fig.height=2}
+
+complete %>%
+	group_by(year) %>%
+	summarise(median = median(tmax)) %>%
+	ggplot(aes(year, median)) +
+	geom_line() +
+	labs(
+		title='Yearly median of Boston max temperatures',
+		subtitle='1936-2013'
+	)
+
+```
+
+This is all over the place. Doesn't say much.
+
+***
+#### What's the distribution of max temperature over time?
+
+```{r, fig.height=2}
+
+complete %>%
+	ggplot(aes(x=year, y=tmax, group=year)) +
+	geom_boxplot() +
+	labs(
+		title='Distribution of Boston max temperatures',
+		subtitle='1936-2013'
+	)
+
+```
+
+Also doesn't say much.
+
+***
+#### What about plotting density plots of all years?
+
+```{r}
+
+complete %>%
+	ggplot(aes(x=tmax, group=year)) +
+	geom_density()
+
+```
+
+Also doesn't say much. But looks pretty cool!
+
+***
+#### What's the distribution of max temperature over time, for July only?
+
+```{r, fig.height=2}
+
+complete %>%
+	filter(month == 7) %>%
+	ggplot(aes(x=year, y=tmax, group=year)) +
+	geom_boxplot() +
+	labs(
+		title='Distribution of Boston max temperatures in July',
+		subtitle='1936-2013'
+	)
+
+```
